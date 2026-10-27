@@ -5,10 +5,61 @@ BeforeDiscovery {
 InModuleScope Restore-DeveloperTools {
     BeforeAll {
         function script:choco {}
+        function script:winget {}
         function script:TestNpm {}
         function script:TestPosh {}
         function script:code {}
         function script:code-insiders {}
+    }
+
+    Describe 'Chocolatey installation' {
+        BeforeEach {
+            Mock Write-Host {}
+            Mock Update-RestoreProcessPath {}
+            $script:chocoAvailable = $false
+            Mock Get-Command {
+                if ($script:chocoAvailable) { @{ Source = 'choco' } }
+            } -ParameterFilter { $Name -eq 'choco' }
+            Mock winget {
+                $script:chocoAvailable = $true
+                $global:LASTEXITCODE = 0
+            }
+        }
+
+        It 'skips an existing Chocolatey installation' {
+            $script:chocoAvailable = $true
+            Install-RestoreChocolatey
+            Should -Invoke winget -Times 0 -Exactly
+        }
+
+        It 'installs the exact package without upgrades or implicit agreement acceptance' {
+            Install-RestoreChocolatey
+            Should -Invoke winget -Times 1 -Exactly -ParameterFilter {
+                $args[0] -eq 'install' -and $args -contains 'Chocolatey.Chocolatey' -and
+                $args -contains '--exact' -and $args -contains '--no-upgrade' -and
+                $args -contains 'winget' -and $args -notcontains '--accept-package-agreements'
+            }
+            Should -Invoke Update-RestoreProcessPath -Times 2 -Exactly
+        }
+
+        It 'forwards explicit agreement acceptance' {
+            Install-RestoreChocolatey -AcceptAgreements
+            Should -Invoke winget -Times 1 -Exactly -ParameterFilter {
+                $args -contains '--accept-package-agreements' -and
+                $args -contains '--accept-source-agreements' -and
+                $args -contains '--disable-interactivity'
+            }
+        }
+
+        It 'reports installer failure' {
+            Mock winget { $global:LASTEXITCODE = 1 }
+            { Install-RestoreChocolatey } | Should -Throw '*Chocolatey installation failed with code 1*'
+        }
+
+        It 'reports missing Chocolatey after a successful installer exit' {
+            Mock winget { $global:LASTEXITCODE = 0 }
+            { Install-RestoreChocolatey } | Should -Throw '*not available on PATH after installation*'
+        }
     }
 
     Describe 'Chocolatey Git preference' {

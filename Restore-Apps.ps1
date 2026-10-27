@@ -69,6 +69,9 @@ if ($PSCmdlet.ShouldProcess(
     Start-Transcript -Path $logPath | Out-Null
     try {
         Write-Host "Restoring apps. Transcript: $logPath"
+        if ($packageIds -contains 'Chocolatey.Chocolatey') {
+            Install-RestoreChocolatey -AcceptAgreements:$AcceptAgreements
+        }
         if ($packageIds -contains 'Git.Git') {
             Install-RestoreGitWithChocolatey -AcceptAgreements:$AcceptAgreements
         }

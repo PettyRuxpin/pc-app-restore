@@ -23,6 +23,32 @@ function Test-RestoreAdministrator {
     }
 }
 
+function Install-RestoreChocolatey {
+    param([switch] $AcceptAgreements)
+
+    Update-RestoreProcessPath
+    if (Get-Command choco -ErrorAction SilentlyContinue) {
+        Write-Host 'Chocolatey: already available; skipping installation.'
+        return
+    }
+    $installArguments = @(
+        'install', '--id', 'Chocolatey.Chocolatey', '--exact',
+        '--source', 'winget', '--no-upgrade'
+    )
+    if ($AcceptAgreements) {
+        $installArguments += @('--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
+    }
+    & winget @installArguments | Out-Host
+    $installExit = $LASTEXITCODE
+    if ($installExit -ne 0) {
+        throw "Chocolatey installation failed with code $installExit. Review the transcript and any elevation or corporate policy requirements, then rerun."
+    }
+    Update-RestoreProcessPath
+    if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+        throw 'Chocolatey is not available on PATH after installation. Open a new PowerShell 7 window and rerun after checking its installation.'
+    }
+}
+
 function Install-RestoreGitWithChocolatey {
     param([switch] $AcceptAgreements)
 

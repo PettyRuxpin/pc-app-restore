@@ -12,6 +12,8 @@ Describe 'App-only restore manifest' {
         $ids = @($manifest.Sources.Packages.PackageIdentifier)
         $ids.Count | Should -Be 32
         @($ids | Select-Object -Unique).Count | Should -Be 32
+        $ids | Should -Contain 'Chocolatey.Chocolatey'
+        $ids | Should -Not -Contain 'Obsidian.Obsidian'
         $ids | Should -Not -Contain 'GitHub.Copilot'
         $ids | Should -Contain 'GitHub.CopilotApp'
         foreach ($id in @(
@@ -43,6 +45,7 @@ Describe 'App-only restore execution' {
         Mock Stop-Transcript {}
         Mock winget { $global:LASTEXITCODE = 0 }
         Mock Import-Module {}
+        Mock Install-RestoreChocolatey {}
         Mock Install-RestoreGitWithChocolatey {}
         Mock Update-RestoreProcessPath {}
         Mock Invoke-RestoreDeveloperTools {}
@@ -53,6 +56,7 @@ Describe 'App-only restore execution' {
         Should -Invoke winget -Times 0 -Exactly
         Should -Invoke New-Item -Times 0 -Exactly
         Should -Invoke Start-Transcript -Times 0 -Exactly
+        Should -Invoke Install-RestoreChocolatey -Times 0 -Exactly
         Should -Invoke Install-RestoreGitWithChocolatey -Times 0 -Exactly
         Should -Invoke Invoke-RestoreDeveloperTools -Times 0 -Exactly
     }
@@ -67,6 +71,7 @@ Describe 'App-only restore execution' {
             $args -notcontains '--ignore-unavailable'
         }
         Should -Invoke Stop-Transcript -Times 1 -Exactly
+        Should -Invoke Install-RestoreChocolatey -Times 1 -Exactly
         Should -Invoke Install-RestoreGitWithChocolatey -Times 1 -Exactly
         Should -Invoke Invoke-RestoreDeveloperTools -Times 1 -Exactly -ParameterFilter {
             $NerdFont -eq 'CodeNewRoman'
@@ -123,6 +128,29 @@ Describe 'App-only restore execution' {
         Should -Invoke Invoke-RestoreDeveloperTools -Times 1 -Exactly -ParameterFilter {
             $NerdFont -eq 'JetBrainsMono'
         }
+    }
+
+    It 'installs Chocolatey before attempting Git' {
+        $global:restoreTestChocolateyReady = $false
+        Mock Install-RestoreChocolatey { $global:restoreTestChocolateyReady = $true }
+        Mock Install-RestoreGitWithChocolatey {
+            if (-not $global:restoreTestChocolateyReady) { throw 'Chocolatey was not installed first' }
+        }
+        try {
+            & $restoreScript
+            Should -Invoke Install-RestoreGitWithChocolatey -Times 1 -Exactly
+            $global:restoreTestChocolateyReady | Should -BeTrue
+        } finally {
+            Remove-Variable -Name restoreTestChocolateyReady -Scope Global
+        }
+    }
+
+    It 'stops before Git and import when Chocolatey installation fails' {
+        Mock Install-RestoreChocolatey { throw 'Chocolatey installation failed' }
+        { & $restoreScript } | Should -Throw '*Chocolatey installation failed*'
+        Should -Invoke Install-RestoreGitWithChocolatey -Times 0 -Exactly
+        Should -Invoke winget -Times 0 -Exactly
+        Should -Invoke Stop-Transcript -Times 1 -Exactly
     }
 
     It 'surfaces developer setup failures and closes the transcript' {

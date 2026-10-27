@@ -9,6 +9,7 @@
         "Type": "Microsoft.PreIndexed.Package"
       },
       "Packages": [
+        { "PackageIdentifier": "Chocolatey.Chocolatey" },
         { "PackageIdentifier": "Git.Git" },
         { "PackageIdentifier": "GitHub.cli" },
         { "PackageIdentifier": "GitHub.CopilotApp" },

@@ -56,8 +56,8 @@ enable Hyper-V, schedule logon tasks, or initiate a reboot.
 
 | Group | Apps |
 |---|---|
-| Development | VS Code (Store), VS Code Insiders, Git, GitHub Desktop, GitHub CLI, GitHub Copilot desktop app, Node.js LTS, Python 3.12, PowerShell 7, PowerShell Preview, Azure CLI, Windows Terminal, Windows Terminal Preview, WSL, oh-my-posh, WinSCP, Windows App |
-| Everyday tools | Bitwarden, Chrome, Obsidian, NanaZip, PowerToys (Store), Mouse without Borders, Snipaste (Store) |
+| Development | Chocolatey, VS Code (Store), VS Code Insiders, Git, GitHub Desktop, GitHub CLI, GitHub Copilot desktop app, Node.js LTS, Python 3.12, PowerShell 7, PowerShell Preview, Azure CLI, Windows Terminal, Windows Terminal Preview, WSL, oh-my-posh, WinSCP, Windows App |
+| Everyday tools | Bitwarden, Chrome, NanaZip, PowerToys (Store), Mouse without Borders, Snipaste (Store) |
 | Communication | Discord, Signal, WhatsApp (Store) |
 | Design / hardware | OpenSCAD, OrcaSlicer (Store), Jabra Direct, Canon Print Assistant (Store), Microsoft Accessory Center (Store) |
 
@@ -81,10 +81,18 @@ oh-my-posh, VS Code, and VS Code Insiders) to be installed.
 
 ### Git and Chocolatey
 
-If Git is already on PATH, the Chocolatey step does nothing. Otherwise, when
-running elevated **and Chocolatey is already installed**, the script tries
-`choco install git` first. It does not bootstrap Chocolatey or change execution
-policy. Non-elevated runs, missing Chocolatey, and non-success Chocolatey exit
+Chocolatey is included as `Chocolatey.Chocolatey`. Before the Git step, the
+script checks for `choco` and, if absent, installs Chocolatey using WinGet's
+MSI package with `--no-upgrade`. It refreshes its process PATH and checks for
+`choco` afterward. Installation can require approved elevation; failure stops
+the restore with guidance to retry. No downloaded PowerShell bootstrap is
+executed, and execution policy is not changed. The later manifest import skips
+upgrading the installed package. Remove the Chocolatey manifest entry to omit
+its installation.
+
+If Git is already on PATH, the Git installation step does nothing. Otherwise,
+when running elevated **and Chocolatey is available**, the script tries
+`choco install git` first. Non-elevated runs, missing Chocolatey, and non-success Chocolatey exit
 codes use the Git entry in the WinGet manifest as fallback, with an explicit
 message/warning. `-AcceptAgreements` also supplies Chocolatey's `--yes`.
 WinGet's `--no-upgrade` remains in effect. Run as the intended Windows user,
