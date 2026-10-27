@@ -27,7 +27,6 @@
         { "PackageIdentifier": "Microsoft.WSL" },
         { "PackageIdentifier": "Bitwarden.Bitwarden" },
         { "PackageIdentifier": "Google.Chrome" },
-        { "PackageIdentifier": "Obsidian.Obsidian" },
         { "PackageIdentifier": "M2Team.NanaZip" },
         { "PackageIdentifier": "Microsoft.MouseWithoutBorders" },
         { "PackageIdentifier": "Discord.Discord" },
