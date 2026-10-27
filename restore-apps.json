@@ -1,0 +1,51 @@
+{
+  "$schema": "https://aka.ms/winget-packages.schema.2.0.json",
+  "Sources": [
+    {
+      "SourceDetails": {
+        "Argument": "https://cdn.winget.microsoft.com/cache",
+        "Identifier": "Microsoft.Winget.Source_8wekyb3d8bbwe",
+        "Name": "winget",
+        "Type": "Microsoft.PreIndexed.Package"
+      },
+      "Packages": [
+        { "PackageIdentifier": "Git.Git" },
+        { "PackageIdentifier": "GitHub.cli" },
+        { "PackageIdentifier": "GitHub.Copilot" },
+        { "PackageIdentifier": "GitHub.CopilotApp" },
+        { "PackageIdentifier": "OpenJS.NodeJS.LTS" },
+        { "PackageIdentifier": "Python.Python.3.12" },
+        { "PackageIdentifier": "Microsoft.PowerShell" },
+        { "PackageIdentifier": "Microsoft.AzureCLI" },
+        { "PackageIdentifier": "Microsoft.WindowsTerminal" },
+        { "PackageIdentifier": "Microsoft.WSL" },
+        { "PackageIdentifier": "Bitwarden.Bitwarden" },
+        { "PackageIdentifier": "Google.Chrome" },
+        { "PackageIdentifier": "Obsidian.Obsidian" },
+        { "PackageIdentifier": "M2Team.NanaZip" },
+        { "PackageIdentifier": "Microsoft.MouseWithoutBorders" },
+        { "PackageIdentifier": "Discord.Discord" },
+        { "PackageIdentifier": "OpenWhisperSystems.Signal" },
+        { "PackageIdentifier": "OpenSCAD.OpenSCAD" },
+        { "PackageIdentifier": "Jabra.Direct" }
+      ]
+    },
+    {
+      "SourceDetails": {
+        "Argument": "https://storeedgefd.dsx.mp.microsoft.com/v9.0",
+        "Identifier": "StoreEdgeFD",
+        "Name": "msstore",
+        "Type": "Microsoft.Rest"
+      },
+      "Packages": [
+        { "PackageIdentifier": "XP9KHM4BK9FZ7Q" },
+        { "PackageIdentifier": "XP89DCGQ3K6VLD" },
+        { "PackageIdentifier": "9P1WXPKB68KX" },
+        { "PackageIdentifier": "9NKSQGP7F2NH" },
+        { "PackageIdentifier": "9MV6GL23XM59" },
+        { "PackageIdentifier": "9NDR70LP5W3Q" },
+        { "PackageIdentifier": "9N013P0KR5VX" }
+      ]
+    }
+  ]
+}
