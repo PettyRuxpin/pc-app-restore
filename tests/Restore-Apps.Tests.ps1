@@ -3,16 +3,22 @@ BeforeAll {
     $restoreManifest = Join-Path $PSScriptRoot '..\restore-apps.json'
     # A command stub allows mocking on test hosts without WinGet.
     function winget { param() }
+    Import-Module (Join-Path $PSScriptRoot '..\Restore-DeveloperTools.psm1')
 }
 
 Describe 'App-only restore manifest' {
-    It 'contains 26 distinct apps and excludes corporate productivity packages' {
+    It 'contains 32 distinct apps and excludes corporate productivity packages and separate Copilot CLI' {
         $manifest = Get-Content -LiteralPath $restoreManifest -Raw | ConvertFrom-Json
         $ids = @($manifest.Sources.Packages.PackageIdentifier)
-        $ids.Count | Should -Be 26
-        @($ids | Select-Object -Unique).Count | Should -Be 26
-        $ids | Should -Contain 'GitHub.Copilot'
+        $ids.Count | Should -Be 32
+        @($ids | Select-Object -Unique).Count | Should -Be 32
+        $ids | Should -Not -Contain 'GitHub.Copilot'
         $ids | Should -Contain 'GitHub.CopilotApp'
+        foreach ($id in @(
+            'Microsoft.VisualStudioCode.Insiders', 'Microsoft.WindowsTerminal.Preview',
+            'Microsoft.PowerShell.Preview', 'GitHub.GitHubDesktop',
+            'JanDeDobbeleer.OhMyPosh', 'WinSCP.WinSCP', 'Microsoft.WindowsApp'
+        )) { $ids | Should -Contain $id }
         $ids | Should -Contain '9MV6GL23XM59'
         foreach ($id in @('Microsoft.Office', 'Microsoft.Teams', 'Microsoft.OneDrive', 'Microsoft.Outlook')) {
             $ids | Should -Not -Contain $id
@@ -36,6 +42,10 @@ Describe 'App-only restore execution' {
         Mock Start-Transcript {}
         Mock Stop-Transcript {}
         Mock winget { $global:LASTEXITCODE = 0 }
+        Mock Import-Module {}
+        Mock Install-RestoreGitWithChocolatey {}
+        Mock Update-RestoreProcessPath {}
+        Mock Invoke-RestoreDeveloperTools {}
     }
 
     It 'previews without invoking WinGet or creating logs' {
@@ -43,6 +53,8 @@ Describe 'App-only restore execution' {
         Should -Invoke winget -Times 0 -Exactly
         Should -Invoke New-Item -Times 0 -Exactly
         Should -Invoke Start-Transcript -Times 0 -Exactly
+        Should -Invoke Install-RestoreGitWithChocolatey -Times 0 -Exactly
+        Should -Invoke Invoke-RestoreDeveloperTools -Times 0 -Exactly
     }
 
     It 'imports with no upgrades and no implicit agreement acceptance' {
@@ -55,6 +67,10 @@ Describe 'App-only restore execution' {
             $args -notcontains '--ignore-unavailable'
         }
         Should -Invoke Stop-Transcript -Times 1 -Exactly
+        Should -Invoke Install-RestoreGitWithChocolatey -Times 1 -Exactly
+        Should -Invoke Invoke-RestoreDeveloperTools -Times 1 -Exactly -ParameterFilter {
+            $NerdFont -eq 'CodeNewRoman'
+        }
     }
 
     It 'accepts agreements only when requested' {
@@ -70,6 +86,7 @@ Describe 'App-only restore execution' {
         Mock winget { $global:LASTEXITCODE = -1978335212 }
         { & $restoreScript } | Should -Throw '*restore incomplete*code -1978335212*'
         Should -Invoke Stop-Transcript -Times 1 -Exactly
+        Should -Invoke Invoke-RestoreDeveloperTools -Times 0 -Exactly
     }
 
     It 'closes the transcript if command invocation throws' {
@@ -99,5 +116,18 @@ Describe 'App-only restore execution' {
         Mock Get-Command { $null } -ParameterFilter { $Name -eq 'winget' }
         { & $restoreScript } | Should -Throw '*WinGet is unavailable*'
         Should -Invoke Start-Transcript -Times 0 -Exactly
+    }
+
+    It 'passes a selected Nerd Font to developer setup' {
+        & $restoreScript -NerdFont 'JetBrainsMono'
+        Should -Invoke Invoke-RestoreDeveloperTools -Times 1 -Exactly -ParameterFilter {
+            $NerdFont -eq 'JetBrainsMono'
+        }
+    }
+
+    It 'surfaces developer setup failures and closes the transcript' {
+        Mock Invoke-RestoreDeveloperTools { throw 'extension install failed' }
+        { & $restoreScript } | Should -Throw '*extension install failed*'
+        Should -Invoke Stop-Transcript -Times 1 -Exactly
     }
 }

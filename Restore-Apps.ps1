@@ -11,13 +11,16 @@ agreements remain interactive unless -AcceptAgreements is explicitly supplied.
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [string] $ManifestPath = (Join-Path $PSScriptRoot 'restore-apps.json'),
-    [switch] $AcceptAgreements
+    [switch] $AcceptAgreements,
+    [ValidatePattern('^[A-Za-z0-9][A-Za-z0-9-]*$')]
+    [string] $NerdFont = 'CodeNewRoman'
 )
 
 $ErrorActionPreference = 'Stop'
 # Native exit codes are handled explicitly below, including in shells that opt in
 # to treating nonzero native exits as PowerShell errors.
 $PSNativeCommandUseErrorActionPreference = $false
+Import-Module (Join-Path $PSScriptRoot 'Restore-DeveloperTools.psm1')
 
 if (-not $IsWindows) {
     throw 'Restore-Apps.ps1 requires Windows.'
@@ -56,19 +59,27 @@ if ($AcceptAgreements) {
     $arguments += @('--accept-package-agreements', '--accept-source-agreements', '--disable-interactivity')
 }
 
-if ($PSCmdlet.ShouldProcess("$($packageIds.Count) apps from $($manifestFile.FullName)", 'Import with WinGet (no upgrades)')) {
+if ($PSCmdlet.ShouldProcess(
+    "$($packageIds.Count) apps from $($manifestFile.FullName); Work IQ, OmnySSH, $NerdFont Nerd Font, five extensions in both VS Code channels",
+    'Restore applications and developer tools (no app upgrades)'
+)) {
     $logDirectory = Join-Path $env:LOCALAPPDATA 'altered-carbon\restore-logs'
     $null = New-Item -Path $logDirectory -ItemType Directory -Force
     $logPath = Join-Path $logDirectory ("restore-{0}-{1}.log" -f (Get-Date -Format 'yyyyMMdd-HHmmss'), [guid]::NewGuid())
     Start-Transcript -Path $logPath | Out-Null
     try {
         Write-Host "Restoring apps. Transcript: $logPath"
+        if ($packageIds -contains 'Git.Git') {
+            Install-RestoreGitWithChocolatey -AcceptAgreements:$AcceptAgreements
+        }
         & winget @arguments
         $importExitCode = $LASTEXITCODE
         if ($importExitCode -ne 0) {
             throw "App restore incomplete: WinGet exited with code $importExitCode. Review $logPath and WinGet logs (winget --logs), resolve the error, and rerun. Earlier packages may already be installed."
         }
-        Write-Host 'WinGet import completed. Review the corporate and manual follow-up checklist in README.md.'
+        Update-RestoreProcessPath
+        Invoke-RestoreDeveloperTools -NerdFont $NerdFont
+        Write-Host 'App and developer-tool restore completed. Review the corporate and manual follow-up checklist in README.md.'
         Write-Host 'App data, sign-ins, settings, WSL distributions, and Windows optional features are not restored by this script.'
     } finally {
         Stop-Transcript | Out-Null
